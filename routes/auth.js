@@ -99,8 +99,9 @@ router.post('/login', [
 //Route 3: Get logged in user details: POST "/api/auth/getuser"> Login required
 router.post('/getuser', fetchuser, async (req, res) => {
     try {
-        userId = req.user.id;
+        let userId = req.user.id;
         const user = await User.findById(userId).select("-password");
+        // const user = await User.findById(userId);
         res.send(user);
     } catch (error) {
         console.log("Error:", error);
@@ -108,5 +109,29 @@ router.post('/getuser', fetchuser, async (req, res) => {
     }
 })
 
+router.post('/updateuser', fetchuser, async (req, res) => {
+    const { username, email } = req.body;
+    let success = false;
+    try {
+        const newuser = {};
+        if (username) {
+            newuser.name = username
+        }
+        if (email) {
+            newuser.email = email
+        }
+        let userId = req.user.id;
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({success, error: "User does not exist"});
+        }
+        user = await User.findByIdAndUpdate(userId, { $set: newuser }, { new: true })
+        success = true;
+        res.json({success, user});
+    } catch (error) {
+        console.log("Error:", error);
+        res.status(500).send("Internal Server Error!");
+    }
+})
 
 module.exports = router;
