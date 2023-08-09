@@ -110,9 +110,20 @@ router.post('/getuser', fetchuser, async (req, res) => {
 })
 
 router.post('/updateuser', fetchuser, async (req, res) => {
-    const { username, email } = req.body;
+    const { username, email, oldPassword, newPassword } = req.body;
     let success = false;
     try {
+        
+        let userId = req.user.id;
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({success, error: "User does not exist"});
+        }
+        const passwordCompare = await bcrypt.compare(oldPassword, user.password);
+        if (!passwordCompare) {
+            success = false;
+            return res.status(400).json({ success, error: "Invalid credentials!" });
+        }
         const newuser = {};
         if (username) {
             newuser.name = username
@@ -120,10 +131,10 @@ router.post('/updateuser', fetchuser, async (req, res) => {
         if (email) {
             newuser.email = email
         }
-        let userId = req.user.id;
-        let user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({success, error: "User does not exist"});
+        if(newPassword){
+            const salt = await bcrypt.genSalt(10);
+            const secPass = await bcrypt.hash(newPassword, salt);
+            newuser.password = secPass
         }
         user = await User.findByIdAndUpdate(userId, { $set: newuser }, { new: true })
         success = true;
